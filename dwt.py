@@ -50,10 +50,12 @@ def coeffs_selection(coefficients_1, coefficients_2):
         (cH1, cV1, cD1) = coeff
         (cH2, cV2, cD2) = coefficients_2[i]
         weight = random.uniform(0., 1);
+        weight2 = random.uniform(0., 1);
+        weight3 = random.uniform(0., 1);
 
         f_cH1 = cH1 * weight + cH2 * (1 - weight)
-        f_cV1 = cV1 * weight + cV2 * (1 - weight)
-        f_cD1 = cD1 * weight + cD2 * (1 - weight)
+        f_cV1 = cV1 * weight2 + cV2 * (1 - weight2)
+        f_cD1 = cD1 * weight3 + cD2 * (1 - weight3)
 
         merged_coeffs.append((f_cH1, f_cV1, f_cD1))
 
