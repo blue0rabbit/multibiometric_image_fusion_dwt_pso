@@ -29,8 +29,8 @@ def dwt_fuse(image1, image2, weights):
 
 def dwt_fuse2(image1, image2):
 
-    coefficients_1 = pywt.wavedec2(image1, 'haar', level=10)
-    coefficients_2 = pywt.wavedec2(image2, 'haar', level=10)
+    coefficients_1 = pywt.wavedec2(image1, 'haar', level=2)
+    coefficients_2 = pywt.wavedec2(image2, 'haar', level=2)
 
     coeffs = coeffs_selection(coefficients_1, coefficients_2)
 
@@ -92,17 +92,17 @@ def wavelet_coefficients (img, level):
     return arr, slices, coeffs
 
 
-face = cv2.imread('face.png', 0)
-finger = cv2.imread('finger.png', 0)
-lena  = cv2.imread('lena.png', 0)
+face = cv2.imread('example/face.png', 0)
+finger = cv2.imread('example/finger.png', 0)
+lena  = cv2.imread('example/lena.png', 0)
 
 for i in range(10):
-   cv2.imwrite("list["+str(i)+"].jpg", dwt_fuse2(finger, face))
+   cv2.imwrite("example/list["+str(i)+"].jpg", dwt_fuse2(finger, face))
 
 r_sift = cv2.SIFT_create(250)
 
 for i in range(10):
-    face = cv2.imread('list[' + str(i) + '].jpg', 0)
+    face = cv2.imread('example/list[' + str(i) + '].jpg', 0)
     face_img = cv2.normalize(face, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
     kp = r_sift.detect(face_img,None)
     face_kp =r_sift.detect(face_img,None)
