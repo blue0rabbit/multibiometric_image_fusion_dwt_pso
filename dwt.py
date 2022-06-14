@@ -1,9 +1,23 @@
-import numpy as np
-import pywt
-import matplotlib.pyplot as plt
-import cv2
-import math
+import os
 import random
+import re
+from enum import Enum
+
+import cv2
+import pywt
+
+WIDTH, HEIGHT = 225, 350
+weights_val = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+
+class Mode(Enum):
+    TRAIN = 1
+    TEST = 2
+
+
+def sort(e):
+    return int(re.findall('\d+', e)[0])
+
 
 def dwt_fuse(image1, image2, weights):
     coefficients_1 = pywt.wavedec2(image1, 'haar', level=2)
@@ -12,7 +26,7 @@ def dwt_fuse(image1, image2, weights):
     [cA, (cH1, cV1, cD1), (cH2, cV2, cD2)] = coefficients_1
     [cAA, (cH11, cV11, cD11), (cH22, cV22, cD22)] = coefficients_2
 
-    f_cA =  cA * weights[0] + cAA * (1 - weights[0])
+    f_cA = cA * weights[0] + cAA * (1 - weights[0])
 
     f_cH1 = cH1 * weights[1] + cH11 * (1 - weights[1])
     f_cV1 = cV1 * weights[2] + cV11 * (1 - weights[2])
@@ -27,21 +41,21 @@ def dwt_fuse(image1, image2, weights):
     result = pywt.waverec2(coeffs, 'haar').astype('uint8')
     return result
 
-def dwt_fuse2(image1, image2):
 
+def dwt_fuse2(image1, image2, weights):
     coefficients_1 = pywt.wavedec2(image1, 'haar', level=2)
     coefficients_2 = pywt.wavedec2(image2, 'haar', level=2)
 
-    coeffs = coeffs_selection(coefficients_1, coefficients_2)
+    coeffs = coeffs_selection(coefficients_1, coefficients_2, weights)
 
     result = pywt.waverec2(coeffs, 'haar').astype('uint8')
     return result
 
-def coeffs_selection(coefficients_1, coefficients_2):
-    merged_coeffs = []
-    weight = random.uniform(0., 1);
 
-    f_cA =  coefficients_1[0] * weight + coefficients_2[0] * (1 - weight)
+def coeffs_selection(coefficients_1, coefficients_2, weights):
+    merged_coeffs = []
+
+    f_cA = coefficients_1[0] * weights[0] + coefficients_2[0] * (1 - weights[0])
     coefficients_1.pop(0)
     coefficients_2.pop(0)
 
@@ -49,17 +63,15 @@ def coeffs_selection(coefficients_1, coefficients_2):
     for i, coeff in enumerate(coefficients_1):
         (cH1, cV1, cD1) = coeff
         (cH2, cV2, cD2) = coefficients_2[i]
-        weight = random.uniform(0., 1);
-        weight2 = random.uniform(0., 1);
-        weight3 = random.uniform(0., 1);
 
-        f_cH1 = cH1 * weight + cH2 * (1 - weight)
-        f_cV1 = cV1 * weight2 + cV2 * (1 - weight2)
-        f_cD1 = cD1 * weight3 + cD2 * (1 - weight3)
+        f_cH1 = cH1 * weights[0] + cH2 * (1 - weights[1])
+        f_cV1 = cV1 * weights[1] + cV2 * (1 - weights[2])
+        f_cD1 = cD1 * weights[2] + cD2 * (1 - weights[3])
 
         merged_coeffs.append((f_cH1, f_cV1, f_cD1))
 
     return merged_coeffs
+
 
 def fuse_coefficients(coefficients_1, slices, coefficients_2, slices2):
     coefficients_1 = pywt.array_to_coeffs(coefficients_1, slices)
@@ -74,7 +86,6 @@ def fuse_coefficients(coefficients_1, slices, coefficients_2, slices2):
     temp2 = list(coefficients_2[1])
     temp3 = list(coefficients_h[1])
     # fusing the decomposed image data
-    print(temp1[0])
     temp3[0] = (temp1[0] + temp2[0])
     temp3[1] = (temp1[1] + temp2[1])
     temp3[2] = (temp1[2] + temp2[2])
@@ -83,30 +94,59 @@ def fuse_coefficients(coefficients_1, slices, coefficients_2, slices2):
     result = pywt.waverec2(coefficients_h, 'haar')
     return result
 
+
 # id_x for selecting image, you can change manually 1 to 21 (21 different infrared and 21 different visible image)
 
-def wavelet_coefficients (img, level):
+def wavelet_coefficients(img, level):
     # img = cv2.imread('./images/Lena.bmp', cv2.IMREAD_GRAYSCALE)
     coeffs = pywt.wavedec2(img, 'haar', level=level)
     arr, slices = pywt.coeffs_to_array(coeffs)
 
-
     return arr, slices, coeffs
 
 
-face = cv2.imread('example/face.png', 0)
-finger = cv2.imread('example/finger.png', 0)
-lena  = cv2.imread('example/lena.png', 0)
+def create_dwt_samples(mode, weights):
+    paths = [os.path.join('faces', p) for p in os.listdir('faces')]
+    select_index = int(mode.value - 1)
+    unique_face_paths = paths[select_index::2]
 
-for i in range(10):
-   cv2.imwrite("example/list["+str(i)+"].jpg", dwt_fuse2(finger, face))
+    fingers = [os.path.join('finger', p) for p in os.listdir('finger')]
+    fingers.sort(key=sort)
 
-r_sift = cv2.SIFT_create(250)
+    file = "\\p" + str(mode.value) + ".bmp"
+    filee = "\\p" + str(mode.value + 2) + ".bmp"
+    fileee = "\\p" + str(mode.value + 4) + ".bmp"
 
-for i in range(10):
-    face = cv2.imread('example/list[' + str(i) + '].jpg', 0)
-    face_img = cv2.normalize(face, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
-    kp = r_sift.detect(face_img,None)
-    face_kp =r_sift.detect(face_img,None)
-    fimg = cv2.drawKeypoints(face_img,face_kp,face)
-    cv2.imwrite("result_"+str(i)+".jpg", fimg)
+    unique_finger_paths = [(p + file) for p in fingers]
+    unique_finger_paths_2 = [(p + filee) for p in fingers]
+    unique_finger_paths_3 = [(p + fileee) for p in fingers]
+
+    all_fingers = unique_finger_paths + unique_finger_paths_2 + unique_finger_paths_3
+    all_fingers.sort(key=sort)
+
+    # for face in unique_face_paths:
+    #     for finger in unique_finger_paths:
+    for i in range(0, len(all_fingers)):
+        face_img = cv2.imread(unique_face_paths[i], 0)
+        finger_img = cv2.imread(all_fingers[i], 0)
+
+        img_face = cv2.resize(face_img, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA)
+        img_finger = cv2.rotate(finger_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        cv2.imwrite("samples/sample_" + str(mode.name)
+                    + "[" + (re.findall('\d+', unique_face_paths[i])[0]) + "].jpg",
+                    dwt_fuse2(img_face, img_finger, weights))
+
+
+def create_samples():
+    weights = [random.choice(weights_val), random.choice(weights_val), random.choice(weights_val),
+               random.choice(weights_val)]
+    print("Create samples with weights: " + str(weights))
+    create_dwt_samples(Mode.TRAIN, weights)
+    create_dwt_samples(Mode.TEST, weights)
+    print("Samples created!")
+
+    return weights
+
+
+# create_samples()
