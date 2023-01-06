@@ -1,1 +1,3 @@
-# Multibiometric traits fusion using Discrete Waves Transformation 
+# About Multibiometric Image Fusion with DWT
+
+TBA
