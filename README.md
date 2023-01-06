@@ -1,3 +1,3 @@
-# About Multibiometric Image Fusion with DWT
+# Multibiometric Image Fusion with DWT
 
 TBA
